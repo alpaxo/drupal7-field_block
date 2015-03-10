@@ -1,0 +1,121 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Installation file for the field_block module.
+ */
+
+/**
+ * Implements hook_field_info().
+ */
+function field_block_field_info() {
+  return array(
+    'field_block' => array(
+      'label' => t('Block'),
+      'description' => t('todo'),
+      'cardinality' => 1,
+      'locked'  => TRUE,
+      'instance_settings' => array(
+        'bid' => 0
+      ),
+      'default_formatter' => 'field_block_asis',
+    )
+  );
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function field_block_field_formatter_info($display_overview = FALSE) {
+  return array(
+    'field_block_default' => array(
+      'label' => t('Default'),
+      'field types' => array('field_block'),
+    )
+  );
+}
+
+/**
+ * Implements hook_field_widget_info_alter().
+ */
+function field_block_field_widget_info() {
+  return array(
+    'field_block_none' => array(
+      'label' => t('none'),
+      'field types' => array('field_block'),
+      'module' => 'field_block'
+    )
+  );
+}
+
+/**
+ * Implements hook_field_widget_settings_form().
+ */
+function field_block_field_instance_settings_form($field, $instance) {
+  global $theme_key;
+
+  $settings = $instance['settings'];
+
+  drupal_theme_initialize();
+  if (!isset($theme)) {
+    $theme = $theme_key;
+  }
+
+  $blocks = _block_rehash($theme);
+  $compare_theme = &drupal_static('_block_compare:theme');
+  $compare_theme = $theme;
+  usort($blocks, '_block_compare');
+
+  $options = array();
+  if ($blocks) foreach ($blocks as $block) {
+    if ($block['module'] == 'block') {
+      $options[$block['bid']] = $block['info'];
+    }
+  }
+
+  $settings = $instance['settings'];
+  $form['bid'] = array(
+    '#type' => 'select',
+    '#title' => t('Block'),
+    '#default_value' => $settings['bid'] ? $settings['bid'] : 0,
+    '#options' => $options,
+    '#description' => t('Select a block that will be exposed as field content')
+  );
+
+  return $form;
+}
+
+function field_block_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, &$items, $display) {
+  static $blocks;
+
+  $settings = $instance['settings'];
+
+  if (is_null($blocks)) {
+    $blocks = db_query('SELECT bid, module, delta FROM {block} WHERE module=:module', array(':module' => 'block'));
+  }
+
+  $element = array();
+  $settings = $instance['settings'];
+  $bid = $settings['bid'];
+  $items[0] = $bid;
+
+  switch ($display['type']) {
+    case 'field_block_default':
+      if ($blocks) {
+        foreach ($blocks as $block) {
+          if ($block->bid == $bid) {
+            $result = module_invoke($block->module, 'block_view', $block->delta);
+            if ($result['content']) {
+              $element[0] = array(
+                '#markup' => $result['content']
+              );
+            }
+          }
+        }
+    }
+    break;
+  }
+
+  return $element;
+}

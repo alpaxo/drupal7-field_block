@@ -1,0 +1,8 @@
+// $Id$
+
+name = Field block
+description = Makes custom block available as field
+package = Fields
+core = 7.x
+dependencies[] = field
+dependencies[] = block

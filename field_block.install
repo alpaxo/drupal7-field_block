@@ -1,0 +1,12 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Install, update and uninstall functions for the field_block module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function field_block_schema() {}
